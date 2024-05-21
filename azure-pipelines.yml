@@ -14,6 +14,9 @@ pr:
 
 jobs:
   - job: "Build_And_Test_Java_Library_Windows"
+    variables:
+      ApplicationInsightAgentVersion: 3.5.1
+
     pool:
       name: '1ES-Hosted-AzFunc'
       demands:
@@ -23,20 +26,17 @@ jobs:
     - task: NuGetToolInstaller@1
       inputs:
         checkLatest: true
+      displayName: 'Install NuGet Tool'
+
     - pwsh: |
         Write-Host "Java_HOME: $JAVA_HOME"
         Get-Command mvn
       displayName: 'Check Maven is installed'
 
-    - pwsh: |
-        Invoke-WebRequest 'https://raw.githubusercontent.com/dotnet/cli/master/scripts/obtain/dotnet-install.ps1' -OutFile 'dotnet-install.ps1'
-        ./dotnet-install.ps1 -InstallDir "$env:ProgramFiles/dotnet" -Version "6.0.100-rc.2.21505.57" -Channel 'release'
-      displayName: 'Install the .Net version used by the Core Tools for Windows'
-      condition: eq( variables['Agent.OS'], 'Windows_NT' )
-    - bash: |
-        curl -sSL https://raw.githubusercontent.com/dotnet/cli/master/scripts/obtain/dotnet-install.sh | bash /dev/stdin -v '6.0.100-rc.2.21505.57' -c 'release' --install-dir /usr/share/dotnet
-      displayName: 'Install the .Net version used by the Core Tools for Linux'
-      condition: eq( variables['Agent.OS'], 'Linux' )
+    - task: UseDotNet@2
+      displayName: 'Install .NET 6'
+      inputs:
+        version: 6.0.x
 
     - pwsh: '& .\build.ps1'
       displayName: 'Build project with java core library'
@@ -49,6 +49,7 @@ jobs:
         mvn clean package `-Dmaven`.javadoc`.skip=true `-Dmaven`.test`.skip `-Dorg`.slf4j`.simpleLogger`.log`.org`.apache`.maven`.cli`.transfer`.Slf4jMavenTransferListener=warn `-B
         Copy-Item "confluent_cloud_cacert.pem" ".\target\azure-functions\azure-functions-java-endtoendtests"
       displayName: 'Package Java for E2E'
+
     - task: DotNetCoreCLI@2
       inputs:
         command: 'test'
@@ -57,6 +58,7 @@ jobs:
       env:
         AzureWebJobsStorage: $(AzureWebJobsStorage)
         AzureWebJobsCosmosDBConnectionString: $(AzureWebJobsCosmosDBConnectionString)
+        AzureWebJobsSqlConnectionString: $(AzureWebJobsSqlConnectionString)
         AzureWebJobsServiceBus: $(AzureWebJobsServiceBus)
         AzureWebJobsEventHubReceiver: $(AzureWebJobsEventHubReceiver)
         AzureWebJobsEventHubSender_2: $(AzureWebJobsEventHubSender_2)
@@ -71,4 +73,7 @@ jobs:
         ConfluentCloudPassword: $(ConfluentCloudPassword)
         AzureWebJobsEventGridOutputBindingTopicUriString: $(AzureWebJobsEventGridOutputBindingTopicUriString)
         AzureWebJobsEventGridOutputBindingTopicKeyString: $(AzureWebJobsEventGridOutputBindingTopicKeyString)
+        ApplicationInsightAPIKey: $(ApplicationInsightAPIKey)
+        ApplicationInsightAPPID: $(ApplicationInsightAPPID)
+        ApplicationInsightAgentVersion: $(ApplicationInsightAgentVersion)
       displayName: 'Build & Run tests for java 8'
