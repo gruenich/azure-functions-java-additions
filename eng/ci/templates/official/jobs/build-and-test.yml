@@ -26,7 +26,7 @@ jobs:
         version: 6.0.x
         
     - pwsh: '& .\build.ps1'
-      displayName: 'Build project with java library'
+      displayName: 'Build project with java core library'
 
     - pwsh: |
         $currDir =  Get-Location
